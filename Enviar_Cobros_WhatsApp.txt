@@ -1,0 +1,84 @@
+function enviarCobrosWhatsApp() {
+  // 1. CONEXIÓN A LA HOJA DE CÁLCULO
+  var hoja = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var datos = hoja.getDataRange().getValues(); // Convierte toda la hoja en una matriz de datos
+  
+  // 2. EXTRACCIÓN SEGURA DE CREDENCIALES (Corregido para Green-API)
+  var propiedades = PropertiesService.getScriptProperties();
+  var gatewayUrl = propiedades.getProperty('API_URL'); // <-- Ahora busca la llave correcta
+  var idInstance = propiedades.getProperty('ID_INSTANCE'); 
+  var token = propiedades.getProperty('API_TOKEN');
+  
+  // 3. LÓGICA DE TIEMPO (Instrucción 4: Saludo dinámico)
+  var horaActual = new Date().getHours();
+  var saludo = "";
+  
+  if (horaActual >= 0 && horaActual < 12) {
+    saludo = "Buenos días";
+  } else if (horaActual >= 12 && horaActual < 18) {
+    saludo = "Buenas tardes";
+  } else {
+    saludo = "Buenas noches";
+  }
+  
+  // 4. PROCESAMIENTO FILA POR FILA
+  // Empezamos en i = 1 para saltarnos los encabezados de la fila 1
+  for (var i = 1; i < datos.length; i++) {
+    var fila = datos[i];
+    
+    // Mapeo exacto de tus columnas (Recuerda que en programación empezamos a contar desde 0)
+    var nombreCompleto = fila[1]; // Columna B
+    var cantidad = fila[4];       // Columna E
+    var tipoServicio = fila[5];   // Columna F
+    var estadoCobro = fila[6];    // Columna G
+    var numeroLocal = fila[7];    // Columna H
+    
+    // VALIDACIÓN: Solo actúa si la celda dice exactamente "COBRAR HOY"
+    if (estadoCobro === "COBRAR HOY" && numeroLocal != "") {
+      
+      // Procesar el primer nombre limpiamente
+      var primerNombre = nombreCompleto.toString().split(" ")[0];
+      
+      // Formatear el número agregando el código de país de Perú (51) sin el signo "+"
+      // Nota: La mayoría de Gateways corporativos prohíben el "+" en sus APIs
+      var numeroLimpio = numeroLocal.toString().replace(/[^0-9]/g, ""); // Elimina espacios o guiones por si acaso
+      var numeroDestino = "51" + numeroLimpio;
+      
+      // CONSTRUCCIÓN DEL MENSAJE DINÁMICO
+      var mensaje = saludo + " " + primerNombre + ", te recordamos que el día de hoy te toca realizar tu pago de " + tipoServicio + ". Muchas gracias y buen día.";
+      
+      // 5. ENVÍO DEL PAQUETE DE DATOS (Adaptado para Green-API)
+      
+      // Construimos la URL exacta según la documentación de Green-API
+      var idInstance = propiedades.getProperty('ID_INSTANCE');
+      var urlFinal = gatewayUrl + "/waInstance" + idInstance + "/sendMessage/" + token;
+      
+      // Green-API exige el sufijo @c.us al final del número
+      var numeroDestino = "51" + numeroLimpio + "@c.us";
+      
+      // El formato de datos (payload) que exige Green-API usa "chatId" y "message"
+      var payload = {
+        "chatId": numeroDestino,
+        "message": mensaje
+      };
+      
+      var opciones = {
+        "method" : "post",
+        "contentType": "application/json",
+        "payload" : JSON.stringify(payload),
+        "muteHttpExceptions": true 
+      };
+      
+      // Ejecución del envío web
+      try {
+        var respuesta = UrlFetchApp.fetch(urlFinal, opciones);
+        Logger.log("Mensaje enviado con éxito a: " + primerNombre + ". Respuesta: " + respuesta.getContentText());
+      } catch (error) {
+        Logger.log("Error crítico al enviar a " + primerNombre + ": " + error.toString());
+      }
+      
+      // 🛡️ MEDIDA DE SEGURIDAD ANTI-BAN DE WHATSAPP
+      Utilities.sleep(5000); // Descansa 5 segundos
+    }
+  }
+}
