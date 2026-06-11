@@ -44,4 +44,4 @@ Solución de comunicación automatizada integrada directamente en el ecosistema 
 ## 📬 Contacto
 Si te interesan estos proyectos, tienes sugerencias de mejora o deseas conectar para hablar sobre automatización de procesos, siéntete libre de visitar mi perfil o contactarme.
 
-[![LinkedIn](https://www.linkedin.com/in/andoni-d%C3%A1vila/)]
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue)](https://www.linkedin.com/in/andoni-d%C3%A1vila/)
